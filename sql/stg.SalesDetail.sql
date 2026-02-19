@@ -1,11 +1,12 @@
 USE AdventureWorksDW_Portfolio;
 GO
 
+/* 1) Drop the current staging table (the one with IDENTITY) */
 IF OBJECT_ID('stg.SalesOrderHeader', 'U') IS NOT NULL
     DROP TABLE stg.SalesOrderHeader;
 GO
 
--- Explicit create WITHOUT identity
+/* 2) Recreate it explicitly WITHOUT identity */
 CREATE TABLE stg.SalesOrderHeader
 (
     SalesOrderID        INT NOT NULL,
@@ -36,10 +37,17 @@ CREATE TABLE stg.SalesOrderHeader
     ModifiedDate        DATETIME NOT NULL,
 
     ETL_RunID           INT NULL,
-    ETL_LoadedAt        DATETIME2(0) NOT NULL DEFAULT SYSUTCDATETIME()
+    ETL_LoadedAt        DATETIME2(0) NOT NULL CONSTRAINT DF_stg_SOH_LoadedAt DEFAULT SYSUTCDATETIME()
 );
 GO
 
-CREATE INDEX IX_stg_SOH_SalesOrderID 
-ON stg.SalesOrderHeader (SalesOrderID);
+CREATE INDEX IX_stg_SOH_SalesOrderID ON stg.SalesOrderHeader (SalesOrderID);
+GO
+
+/* 3) Verify: should return ZERO rows now */
+SELECT c.name, c.is_identity
+FROM sys.columns c
+JOIN sys.tables t ON t.object_id = c.object_id
+JOIN sys.schemas s ON s.schema_id = t.schema_id
+WHERE s.name='stg' AND t.name='SalesOrderHeader' AND c.is_identity=1;
 GO
